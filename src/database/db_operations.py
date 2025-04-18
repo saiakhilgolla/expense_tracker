@@ -63,5 +63,14 @@ class CRUDOperations(Generic[ModelType, SchemaType]):
             local_session.refresh(model_instance)
         return model_instance
 
-# TODO: Add created_at and updated_at timestamps to table schema
-# TODO: Add function to find "id" based on other atrributes such as date, description etc?
+    def get_unique_records(self, local_session: Session):
+        """Retrieve distinct records based on unique column."""
+        unique_column = None
+        if self.model.__name__ == "Accounts":
+            unique_column = "account_name"
+        elif self.model.__name__ == "Categories":
+            unique_column = "category_name"
+
+        if unique_column:
+            return local_session.query(getattr(self.model, unique_column)).distinct().all()
+        return []
