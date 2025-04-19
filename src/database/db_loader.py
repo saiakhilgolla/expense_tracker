@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
-from db_operations import AccountsInput, CategoryInput, CRUDOperations
-from db_schema import Accounts, Categories
+from db_operations import AccountsInput, CategoryInput, TransactionsInput, CRUDOperations
+from db_schema import Accounts, Categories, Transactions
 import pandas as pd
+
 
 def load_accounts_table(df, local_session: Session):
     add_accounts_crud = CRUDOperations[Accounts, AccountsInput](Accounts)
@@ -36,6 +37,7 @@ def load_accounts_table(df, local_session: Session):
     add_accounts_crud.add_records(local_session, records_to_add)
     print("Added new accounts to the table.")
 
+
 def load_categories_table(df, local_session: Session):
     add_categories_crud = CRUDOperations[Categories, CategoryInput](Categories)
 
@@ -64,4 +66,39 @@ def load_categories_table(df, local_session: Session):
 
     # Add records to DB
     add_categories_crud.add_records(local_session, records_to_add)
+    print("Added new categories to the table.")
+
+
+def load_transactions_table(df, local_session: Session):
+    add_transactions_crud = CRUDOperations[Transactions, TransactionsInput](Transactions)
+
+	# Create Account ID mappings
+    account_lookup = {
+        account.account_name: account.id
+		for account in local_session.query(Accounts).all()
+	}
+
+	# Create Category ID mappings
+    category_lookup = {
+        category.category_name : category.id
+        for category in local_session.query(Categories).all()
+	}
+
+	# Create Transaction instances to load
+    records_to_add = []
+    for index, row in df.iterrows():
+        new_transaction = TransactionsInput(
+            "date": row["Date"],
+            "description": row["Description"],
+            "sub_description": row[SubDescription],
+            "transaction_type" row["TransactionType"],
+            "amount": row["Amount"],
+            "balance": row["Balance"],
+            "account_id": account_lookup.get(row["AccountName"]),
+            "category_id": category_lookup.get(row["Category"])
+		)
+        records_to_add.append(new_transaction)
+
+    # Add records to DB
+    add_transactions_crud.add_records(local_session, records_to_add)
     print("Added new categories to the table.")
