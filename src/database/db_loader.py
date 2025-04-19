@@ -1,32 +1,67 @@
 from sqlalchemy.orm import Session
-from db_operations import AccountsInput, CRUDOperations
+from db_operations import AccountsInput, CategoryInput, CRUDOperations
 from db_schema import Accounts, Categories
 import pandas as pd
 
-def parse_df(df):
+def load_accounts_table(df, local_session: Session):
+    add_accounts_crud = CRUDOperations[Accounts, AccountsInput](Accounts)
 
-	accounts_df = df[["AccountType", "AccountName"]].drop_duplicates().reset_index(drop = True)
-	categories_df = df[["Category"]].drop_duplicates().reset_index(drop = True)
-	transactions_df = df[["date", "description", "sub_description", "transaction_type", "amount", "balance"]]
+    # Get current accounts from DB
+    unique_account_instances = add_accounts_crud.get_unique_records(local_session)
+    current_accounts = {account_instance[0] for account_instance in unique_account_instances}
 
-	return (accounts_df, categories_df, transactions_df)
+    # Get unique accounts from DataFrame
+    new_accounts = set(df["AccountName"].unique())
 
-def load_accounts_table(accounts_df, local_session: Session):
-	add_accounts_crud = CRUDOperations[Accounts, AccountsInput](Accounts)
-	unique_account_instances = add_accounts_crud.get_unique_records(local_session)
-	unique_accounts = [account_instance.AccountName for account_instance in unique_account_instances]
+    # Find net new accounts
+    net_new_accounts = new_accounts - current_accounts
 
-	current_accounts = set(unique_accounts)
-	new_accounts = set(list(df["AccountName"]))
+    if not net_new_accounts:
+        print("No net new accounts found. Skipping without adding ...")
+        return
 
-	net_new_accounts = set(current_accounts - new_accounts)
+    # Filter and prepare new records
+    records_to_add = []
 
-	if not net_new_accounts:
-		print("No net new accounts found. Skipping without adding ...")
+    for account_name in net_new_accounts:
+        row = df[df["AccountName"] == account_name].iloc[0]  # Pick first matching row
+        new_account = AccountsInput(
+            account_name=account_name,
+            account_type=row["Accounttype"],
+            account_user="dummy"
+        )
+        records_to_add.append(new_account)
 
-	accounts_to_add = AccountsInput(account_name = df.AccountName,
-								 account_type = df.Accounttype,
-								 account_user = 'dummy')
-	add_accounts_crud.add_records(local_session, accounts_to_add)
-	print ("Added new accounts to the table.")
+    # Add records to DB
+    add_accounts_crud.add_records(local_session, records_to_add)
+    print("Added new accounts to the table.")
 
+def load_categories_table(df, local_session: Session):
+    add_categories_crud = CRUDOperations[Categories, CategoryInput](Categories)
+
+    # Get current categories from DB
+    unique_category_instances = add_categories_crud.get_unique_records(local_session)
+    current_categories = {category_instance[0] for category_instance in unique_category_instances}
+
+    # Get unique categories from DataFrame
+    new_categories = set(df["Category"].unique())
+
+    # Find net new categories
+    net_new_categories = new_categories - current_categories
+
+    if not net_new_categories:
+        print("No net new categories found. Skipping without adding ...")
+        return
+
+    # Filter and prepare new records
+    records_to_add = []
+
+    for category in net_new_categories:
+        new_category = CategoryInput(
+            category=category
+        )
+        records_to_add.append(new_category)
+
+    # Add records to DB
+    add_categories_crud.add_records(local_session, records_to_add)
+    print("Added new categories to the table.")
