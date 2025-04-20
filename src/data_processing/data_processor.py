@@ -1,5 +1,5 @@
 import numpy as np
-from data_processing.file_processors import FileProcessor, CSVProcessor
+from src.data_processing.file_processors import FileProcessor, CSVProcessor
 from src.utils.file_utils import load_config
 
 

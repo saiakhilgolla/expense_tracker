@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from db_operations import AccountsInput, CategoryInput, TransactionsInput, CRUDOperations
-from db_schema import Accounts, Categories, Transactions
+from src.database.db_operations import AccountsInput, CategoryInput, TransactionsInput, CRUDOperations
+from src.database.db_schema import Accounts, Categories, Transactions
 import pandas as pd
 
 

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date
 from abc import ABC
-from database.db_config import Base
+from src.database.db_config import Base
 
 
 class AbstractTable(ABC, Base):
