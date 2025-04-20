@@ -88,14 +88,14 @@ def load_transactions_table(df, local_session: Session):
     records_to_add = []
     for index, row in df.iterrows():
         new_transaction = TransactionsInput(
-            "date": row["Date"],
-            "description": row["Description"],
-            "sub_description": row[SubDescription],
-            "transaction_type" row["TransactionType"],
-            "amount": row["Amount"],
-            "balance": row["Balance"],
-            "account_id": account_lookup.get(row["AccountName"]),
-            "category_id": category_lookup.get(row["Category"])
+            date = row["Date"],
+            description = row["Description"],
+            sub_description = row["SubDescription"],
+            transaction_type = row["TransactionType"],
+            amount = row["Amount"],
+            balance = row["Balance"],
+            account_id = account_lookup.get(row["AccountName"]),
+            category_id = category_lookup.get(row["Category"])
 		)
         records_to_add.append(new_transaction)
 
