@@ -6,6 +6,7 @@ from os.path import isfile, join
 
 def get_file_list(path:str) -> list[str]:
 	"""Generate list of full paths for all the files in the directory"""
+	# TODO: test if this also returns files in nested folders
 	file_paths = [join(path, file) for file in listdir(path) if isfile(join(path, file))]
 	return(file_paths)
 
