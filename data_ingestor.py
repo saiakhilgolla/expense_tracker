@@ -7,8 +7,12 @@ from src.utils.path_utils import get_file_list, validate_file_list
 from src.utils.file_utils import load_config
 from src.database.db_loader import load_accounts_table, load_categories_table, load_transactions_table
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+CONFIG_PATH = os.path.join(BASE_DIR, 'configs', 'file_config.json')
+print(CONFIG_PATH)
 # Load file and database paths from config
-CONFIG = load_config("config/file_config.json")
+CONFIG = load_config(CONFIG_PATH)
 file_paths = CONFIG['FILE_PATHS']
 
 
@@ -41,6 +45,7 @@ def main():
     print("called main function")
 
     # Get file paths for debit accounts
+    print(CONFIG_PATH)
     debit_file_paths = get_file_list(CONFIG["debit_path"])
     validated_debit_file_paths = validate_file_list(debit_file_paths)
 
