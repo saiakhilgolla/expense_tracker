@@ -28,7 +28,7 @@ def load_accounts_table(df, local_session: Session):
         row = df[df["AccountName"] == account_name].iloc[0]  # Pick first matching row
         new_account = AccountsInput(
             account_name=account_name,
-            account_type=row["Accounttype"],
+            account_type=row["AccountType"],
             account_user="dummy"
         )
         records_to_add.append(new_account)
@@ -60,7 +60,7 @@ def load_categories_table(df, local_session: Session):
 
     for category in net_new_categories:
         new_category = CategoryInput(
-            category=category
+            category_name=category
         )
         records_to_add.append(new_category)
 
@@ -90,8 +90,8 @@ def load_transactions_table(df, local_session: Session):
         new_transaction = TransactionsInput(
             date = row["Date"],
             description = row["Description"],
-            sub_description = row["SubDescription"],
-            transaction_type = row["TransactionType"],
+            sub_description = row["Sub-description"],
+            transaction_type = row["Type of Transaction"],
             amount = row["Amount"],
             balance = row["Balance"],
             account_id = account_lookup.get(row["AccountName"]),

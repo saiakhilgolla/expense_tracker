@@ -1,19 +1,34 @@
 {
-	"REQUIRED_COLS":["Date", "Description", "SubDescription", "TransactionType", "Amount"],
-	"ACCOUNT_KEY_WORDS":{
-		"Scotiabank Gold Amex": ["Scotiabank", "Gold", "Amex"],
-		"Scotiabank Scene Visa": ["Scene", "Visa"],
-		"Scotiabank Preferred Package": ["Preferred", "Package"]
-	},
-	"ACCOUNT_TYPES": {
-		"Scotiabank Gold Amex": "Credit Card",
-		"Scotiabank Scene Visa": "Credit Card",
-		"Scotiabank Preferred Package": "Chequing Account"
-	},
-	"FILE_PATHS": {
-		"DEBIT_PATH": "data/debit_accounts",
-    	"CREDIT_PATH": "data/credit_accounts",
-    	"DB_PATH": "src/database/MonthlyExpenses.db"
-	}
-
+    "REQUIRED_COLS": [
+        "Date",
+        "Description",
+        "Sub-description",
+        "Type of Transaction",
+        "Amount"
+    ],
+    "ACCOUNT_KEY_WORDS": {
+        "Scotiabank Gold Amex": [
+            "Scotiabank",
+            "Gold",
+            "Amex"
+        ],
+        "Scotiabank Scene Visa": [
+            "Scene",
+            "Visa"
+        ],
+        "Scotiabank Preferred Package": [
+            "Preferred",
+            "Package"
+        ]
+    },
+    "ACCOUNT_TYPES": {
+        "Scotiabank Gold Amex": "Credit Card",
+        "Scotiabank Scene Visa": "Credit Card",
+        "Scotiabank Preferred Package": "Chequing Account"
+    },
+    "FILE_PATHS": {
+        "DEBIT_PATH": "data/debit_accounts",
+        "CREDIT_PATH": "data/credit_accounts",
+        "DB_PATH": "src/database/MonthlyExpenses.db"
+    }
 }

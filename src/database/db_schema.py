@@ -1,10 +1,9 @@
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, DeclarativeBase
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date
-from abc import ABC
 from src.database.db_config import Base
 
 
-class AbstractTable(ABC, Base):
+class AbstractTable(Base):
 	__table__ : str
 	__abstract__ = True # stops sqlalchemy from creating a table for this class
 

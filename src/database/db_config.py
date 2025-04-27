@@ -9,7 +9,8 @@ database_url = "sqlite:///src/database/Expenses.db"
 engine = create_engine(database_url, echo = True)
 
 #initiate and configure a session to perform transactions on the database
-session_local = sessionmaker(bind=engine)
+session_factory = sessionmaker(bind=engine)
+session_local = session_factory()
 
 #Define base
 Base = declarative_base()

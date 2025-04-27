@@ -1,5 +1,6 @@
+import pandas as pd
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import date
 from typing import Optional, TypeVar, Generic, Type, Union, List
 
@@ -7,12 +8,18 @@ from typing import Optional, TypeVar, Generic, Type, Union, List
 class TransactionsInput(BaseModel):
     date: date
     description: str
-    sub_description: str
+    sub_description: str | None
     transaction_type: str
     amount: float
     balance: float
     account_id: int
     category_id: int
+
+    @field_validator('sub_description', mode='before')
+    def nan_to_none(cls, v):
+        if isinstance(v, float) and pd.isna(v):
+            return None
+        return v
 
 # Class to enforce input schema before adding input into Accounts table
 class AccountsInput(BaseModel):

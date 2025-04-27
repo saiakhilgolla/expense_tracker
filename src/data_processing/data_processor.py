@@ -9,9 +9,9 @@ class FileProcessorFactory:
 	"""This class assigns appropriate file processor depending on file type"""
 
 	@staticmethod
-	def get_file_processor(file_type:str, file_path:str) -> FileProcessor:
+	def get_file_processor(file_type:str, file_path:str, config: dict) -> FileProcessor:
 		if file_type == 'csv':
-			return(CSVProcessor(file_path))
+			return(CSVProcessor(file_path, config))
 		else:
 			raise ValueError(f"File type {file_type} not supported")
 
@@ -37,7 +37,7 @@ class DataProcessor():
 		df = self.file_processor.add_column("AccountName", account_name)
 
 		#Add Account type column
-		account_type = [account_type for account_name, account_type in config['ACCOUNT_TYPES'] if account_name == df.AccountName][0]
+		account_type = [account_type for account_name, account_type in config['ACCOUNT_TYPES'].items() if account_name == df.AccountName[0]][0]
 		df = self.file_processor.add_column("AccountType", account_type)
 
 		#Add "Balance" column to credit card
