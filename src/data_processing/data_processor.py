@@ -40,6 +40,10 @@ class DataProcessor():
 		account_type = [account_type for account_name, account_type in config['ACCOUNT_TYPES'].items() if account_name == df.AccountName[0]][0]
 		df = self.file_processor.add_column("AccountType", account_type)
 
+        #Convert amount to absolute if account type is debit
+		if df.AccountType[0] == "Debit Card":
+			df.amount = df.amount.abs()
+
 		#Add "Balance" column to credit card
 		if df.AccountType[0] == "Credit Card":
 			df = self.file_processor.add_column("Balance", np.nan)
