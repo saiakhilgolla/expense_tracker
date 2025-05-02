@@ -175,4 +175,5 @@ data
 
 # Sensitive info such as keys
 config.ini
-src/database/MonthlyExpenses.db
+src/database/*.db
+

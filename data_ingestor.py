@@ -1,67 +1,84 @@
 import os
-from src.data_processing.csv_processor import process_csv
+import sys
+import pandas as pd
+
+# Add src/ to path if keeping src. imports
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+from src.data_processing.data_processor import FileProcessorFactory, DataProcessor
 from src.data_categorization.gpt_categorizer import CategorizeTransaction
-from src.database.db_operations import insert_transactions
+from src.database.db_config import session_local
+from src.database.db_init import initialize_db
 from src.utils.path_utils import get_file_list, validate_file_list
-from src.database.db_connector import get_sqlite3_connector
+from src.utils.file_utils import load_config
+from src.database.db_loader import load_accounts_table, load_categories_table, load_transactions_table
 
-# TODO: ADD DEBIT AND CREDIT TRANSACTIONS IN DIFFERENT TABLES TO KEEP TRACK OF BALANCE
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(BASE_DIR, 'config', 'file_config.json')
 
-# Configuration file paths
-CONFIG = {
-    "debit_path": "data/debit_accounts",
-    "credit_path": "data/credit_accounts",
-    "db_path": "src/database/MonthlyExpenses.db",
-}
+CONFIG = load_config(CONFIG_PATH)
 
-def is_csv_file(file_path):
-    """Validate if the file is a CSV file."""
-    return file_path.endswith(".csv")
+def process_and_categorize_files(file_path: str, required_columns: list[str], config: dict):
+    file_processor = FileProcessorFactory.get_file_processor('csv', file_path, config)
+    processed_df = DataProcessor(file_processor).process_file()
 
-def process_and_categorize_files(file_paths, required_columns, db_connection):
-    """Process CSV files, categorize transactions, and insert them into the database."""
-    for csv_file_path in file_paths:
-        if not is_csv_file(csv_file_path):
-            print(f"Skipping non-CSV file: {csv_file_path}")
-            continue
+    print("Finished processing file.")
+    print("Identifying Categories to processed transactions.....")
 
-        processed_df = process_csv(csv_file_path)
+    categories = [
+        CategorizeTransaction(row.to_string()).get_category()
+        for _, row in processed_df[required_columns].iterrows()
+    ]
+    processed_df['Category'] = categories
+    print(processed_df)
+    print("Categories added to transactions data. Returning dataframe ...")
+    return processed_df
 
-        # Categorize transactions
-        categories = [
-            CategorizeTransaction(row.to_string()).get_category()
-            for _, row in processed_df[required_columns].iterrows()
-        ]
-        processed_df['Category'] = categories
+def load_tables_to_db(df: pd.DataFrame):
+    print("Loading Accounts information to Accounts table....")
+    load_accounts_table(df, session_local)
 
-        # Prepare data for database insertion
-        data_load = tuple(processed_df.to_dict(orient="records"))
-        #print(data_load)
+    print("Finished loading Accounts table. Loading Categories table now.... ")
+    load_categories_table(df, session_local)
 
-        # Insert transactions into the database
-        insert_transactions(db_connection, data_load)
+    print("Finished loading Categores table. Loading Transactions table now...")
+    load_transactions_table(df, session_local)
+
+    print(f"Finished loading transactions table for month:{df.Date[0]} ")
+    return
 
 def main():
-    print("called main function")
-    # Get file paths for debit accounts
-    debit_file_paths = get_file_list(CONFIG["debit_path"])
+    print("Called main function.......")
+
+    debit_file_paths = get_file_list(CONFIG["FILE_PATHS"]["DEBIT_PATH"])
     validated_debit_file_paths = validate_file_list(debit_file_paths)
 
-	# Get file paths for credit accounts
-    credit_file_paths = get_file_list(CONFIG["credit_path"])
+    credit_file_paths = get_file_list(CONFIG["FILE_PATHS"]["CREDIT_PATH"])
     validated_credit_file_paths = validate_file_list(credit_file_paths)
 
-    # Required columns for processing
-    required_columns = ["Date", "Description", "SubDescription", "TransactionType", "Amount"]
+    required_columns = ["Date", "Description", "Sub-description", "Type of Transaction", "Amount"]
 
-    # Establish database connection
-    conn = get_sqlite3_connector(CONFIG["db_path"])
+    # Initialize DB tables
+    print("Creating tables .... ")
+    initialize_db()
 
-    try:
-        process_and_categorize_files(validated_debit_file_paths, required_columns, conn)
-        process_and_categorize_files(validated_credit_file_paths, required_columns, conn)
-    finally:
-        conn.close()
+    print("Start processing debit statements.....")
+
+    for debit_path in validated_debit_file_paths:
+        print(f"Processing file: {debit_path}..")
+        if not debit_path.endswith(".csv"):
+            continue
+        debit_df = process_and_categorize_files(debit_path, required_columns, CONFIG)
+        load_tables_to_db(debit_df)
+
+    print("Start processing Credit statements...")
+
+    for credit_path in validated_credit_file_paths:
+        print(f"Processing file: {credit_path}..")
+        if not credit_path.endswith(".csv"):
+            continue
+        credit_df = process_and_categorize_files(credit_path, required_columns, CONFIG)
+        load_tables_to_db(credit_df)
 
 if __name__ == '__main__':
-	main()
+    main()

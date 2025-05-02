@@ -1,52 +1,91 @@
-import sqlite3
+import pandas as pd
+from sqlalchemy.orm import Session
+from pydantic import BaseModel, field_validator
+from datetime import date
+from typing import Optional, TypeVar, Generic, Type, Union, List
 
+# Class to enforce input schema before adding data into Transactions table
+class TransactionsInput(BaseModel):
+    date: date
+    description: str
+    sub_description: str | None
+    transaction_type: str
+    amount: float
+    balance: float
+    account_id: int
+    category_id: int
 
-def insert_transactions(conn:sqlite3.Connection, row_data:dict):
-	#insert new rows into Transactions table
-	try:
-		with conn:
-			conn.executemany('''
-							INSERT INTO Transactions VALUES(
-							:MonthYear,
-							:Date,
-							:Description,
-							:SubDescription,
-							:TransactionType,
-							:Amount,
-							:AccountType,
-							:AccountName,
-							:Category)
-							''', row_data)
-	except sqlite3.IntegrityError:
-		print("couldn't add a row twice")
-	return(print("Data successfully loaded in to Transactions table"))
+    @field_validator('sub_description', mode='before')
+    def nan_to_none(cls, v):
+        if isinstance(v, float) and pd.isna(v):
+            return None
+        return v
 
-def fetch_transactions_data(conn:sqlite3.Connection) -> dict:
-	try:
-		with conn:
-			data = conn.execute("SELECT * FROM Transactions")
-	except Exception as e:
-		print(f'Exception {e} occured')
-	return (data.fetchall())
+# Class to enforce input schema before adding input into Accounts table
+class AccountsInput(BaseModel):
+    account_name: str
+    account_type: str
+    account_user: Optional[str] = None
 
-def get_total_monthly_expense(conn:sqlite3.Connection):
-	try:
-		with conn:
-			data = conn.execute("SELECT MonthYear, SUM(ABS(Amount)) AS Total_Expense FROM Transactions WHERE TransactionType = 'Debit' AND AccountType ='Credit Card' GROUP BY MonthYear")
-	except Exception as e:
-		print(f'Exception {e} occured')
-	return(data.fetchall())
-# TODO: ADD FUNCTION TO REMOVE/ DELETE ROWS BASED ON FILTERS
-# TODO: ADD FUNCTION TO QUERY DATA FROM DB TABLE
+# Class to enforce input schema before adding input into Categories table
+class CategoryInput(BaseModel):
+    category_name: str
+    parent_id: Optional[str] = None
 
-""" conn = get_sqlite3_connector("./src/database/MonthlyExpenses.db")
-data = {"MonthYear": "November 2024",
-		"Date": "2024-11-03",
-		"Description": "test",
-		"SubDescription": "test_desc",
-		"TransactionType": "debit",
-		"Amount": 1500,
-		"AccountType": "Chequing",
-		"AccountName": "preferred Package",
-		"Category": "example"}
-insert_transactions(conn, data) """
+# Define types for model and schema
+ModelType = TypeVar("ModelType")
+SchemaType = TypeVar("InputSchema", bound=BaseModel)
+
+# Class to define CRUD operations
+class CRUDOperations(Generic[ModelType, SchemaType]):
+    def __init__(self, model: Type[ModelType]):
+        self.model = model
+
+    def add_records(self, local_session: Session, input_objs: Union[SchemaType, List[SchemaType]]):
+        """Add one or more records to the table."""
+        if isinstance(input_objs, list):
+            model_instances = [self.model(**obj.model_dump()) for obj in input_objs]
+            local_session.add_all(model_instances)
+            local_session.commit()
+            for instance in model_instances:
+                local_session.refresh(instance)
+            return model_instances
+        else:
+            model_instance = self.model(**input_objs.model_dump())
+            local_session.add(model_instance)
+            local_session.commit()
+            local_session.refresh(model_instance)
+            return model_instance
+
+    def delete_records(self, local_session: Session, id: int):
+        """Delete a record by ID."""
+        model_instance = local_session.query(self.model).filter(self.model.id == id).first()
+        if model_instance:
+            local_session.delete(model_instance)
+            local_session.commit()
+
+    def update(self, local_session: Session, id: int, update_input: dict):
+        """Validate and update an existing record."""
+        model_instance = local_session.query(self.model).filter(self.model.id == id).first()
+        if model_instance:
+            for field, value in update_input.items():
+                setattr(model_instance, field, value)
+            local_session.commit()
+            local_session.refresh(model_instance)
+        return model_instance
+
+    def get_unique_records(self, local_session: Session) -> List:
+        """Retrieve distinct records based on unique column."""
+        unique_column = None
+        if self.model.__name__ == "Accounts":
+            unique_column = "account_name"
+        elif self.model.__name__ == "Categories":
+            unique_column = "category_name"
+
+        if unique_column:
+            return local_session.query(getattr(self.model, unique_column)).distinct().all()
+        return []
+
+    def get_records(self, local_session: Session):
+        """Get all records from table"""
+        return local_session.query(self.model).all()
