@@ -16,7 +16,7 @@ def get_expense_transactions(df):
 
     # Rule 2: Debit transactions in chequing accounts with specific sub_descriptions are considered expenses
     chequing_expenses = (df['transaction_type'] == 'Debit') & (df['account_type'] == 'Chequing Account') & df['sub_description'].str.contains(
-        "Royal Bank Visa|Remitly|Planet Fitness|American Express|Hsbc Mastercard|Hone Fitness",
+        "Remitly|Planet Fitness|American Express|Hsbc Mastercard|Hone Fitness",
         case=False, na=False)
 
     # Combine both conditions for total expenses

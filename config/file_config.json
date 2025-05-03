@@ -19,16 +19,31 @@
         "Scotiabank Preferred Package": [
             "Preferred",
             "Package"
+        ],
+        "RBC Avion Visa Infinite": [
+            "RBC",
+            "Avion",
+            "Infinite"
         ]
     },
     "ACCOUNT_TYPES": {
         "Scotiabank Gold Amex": "Credit Card",
         "Scotiabank Scene Visa": "Credit Card",
+        "RBC Avion Visa Infinite": "Credit Card",
         "Scotiabank Preferred Package": "Chequing Account"
     },
     "FILE_PATHS": {
         "DEBIT_PATH": "data/debit_accounts",
         "CREDIT_PATH": "data/credit_accounts",
         "DB_PATH": "src/database/MonthlyExpenses.db"
-    }
+    },
+    "REFERENCE_COLUMNS": [
+        "Filter",
+        "Date",
+        "Description",
+        "Sub-description",
+        "Status",
+        "Type of Transaction",
+        "Amount"
+    ]
 }

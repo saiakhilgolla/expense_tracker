@@ -20,7 +20,7 @@ CONFIG = load_config(CONFIG_PATH)
 
 def process_and_categorize_files(file_path: str, required_columns: list[str], config: dict):
     file_processor = FileProcessorFactory.get_file_processor('csv', file_path, config)
-    processed_df = DataProcessor(file_processor).process_file()
+    processed_df = DataProcessor(file_processor).process_file(config)
 
     print("Finished processing file.")
     print("Identifying Categories to processed transactions.....")
