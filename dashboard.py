@@ -205,10 +205,10 @@ st.plotly_chart(fig, use_container_width=True)
 st.subheader("Monthly Payroll Income")
 
 # Filter only Payroll Deposit credits in Chequing Accounts
-payroll_df = df[
-    (df['transaction_type'] == 'Credit') &
-    (df['account_type'] == 'Chequing Account') &
-    (df['description'].str.contains("Payroll Deposit", case=False, na=False))
+payroll_df = filtered_df[
+    (filtered_df['transaction_type'] == 'Credit') &
+    (filtered_df['account_type'] == 'Chequing Account') &
+    (filtered_df['description'].str.contains("Payroll Deposit", case=False, na=False))
 ]
 
 # Group by month
@@ -245,26 +245,25 @@ fig_income.update_layout(xaxis_title="Month", yaxis_title="Income ($)")
 st.plotly_chart(fig_income, use_container_width=True)
 
 # -------------------------------------------
-# Spending Breakdown by Category (Monthly)
+# Spending Breakdown by Category (Monthly) - Bar Chart
 # -------------------------------------------
-st.subheader("Spending Breakdown by Category (Monthly)")
+st.subheader("Spending Breakdown by Category (Bar Chart)")
 
 # Prepare monthly category expenses
 monthly_category_expense = (
-    filtered_df[filtered_df['transaction_type'] == 'Debit']
+    filtered_df[(filtered_df['transaction_type'] == 'Debit') &
+                (filtered_df['account_type'] == 'Credit Card')]
     .groupby([pd.Grouper(key='date', freq='M'), 'category_name'])['amount']
     .sum()
     .reset_index()
 )
 
-# Sort the months properly
+# Add month_start column for filtering
 monthly_category_expense['month_start'] = monthly_category_expense['date'].dt.to_period('M').dt.to_timestamp()
 available_months = sorted(monthly_category_expense['month_start'].unique())
-
-# Convert the available months (Timestamps) to datetime
 available_months_dt = [ts.to_pydatetime() for ts in available_months]
 
-# Add a dropdown for selecting months
+# Add month-year multiselect filter
 selected_months = st.multiselect(
     "Select Months",
     options=available_months_dt,
@@ -275,37 +274,41 @@ selected_months = st.multiselect(
 # Filter data based on selected months
 selected_month_df = monthly_category_expense[
     monthly_category_expense['month_start'].isin(pd.to_datetime(selected_months))
-]
+].copy()
 
-# Calculate total for percentage calculation
-total_amount = selected_month_df['amount'].sum()
+# Display warning if no data is selected
+if selected_month_df.empty:
+    st.warning("Please select at least one month to display the breakdown.")
+else:
+    # Aggregate across selected months by category
+    category_summary = (
+        selected_month_df
+        .groupby('category_name')['amount']
+        .sum()
+        .reset_index()
+        .sort_values(by='amount', ascending=False)
+    )
 
-# Add percentage column
-selected_month_df['percent'] = selected_month_df['amount'] / total_amount * 100
+    # Add percentage column
+    total_amount = category_summary['amount'].sum()
+    category_summary['percent'] = category_summary['amount'] / total_amount * 100
 
-# Create combined label
-selected_month_df['label'] = selected_month_df.apply(
-    lambda row: f"{row['category_name']}<br>${row['amount']:,.2f} ({row['percent']:.1f}%)",
-    axis=1
-)
+    # Create horizontal bar chart
+    bar_fig = px.bar(
+        category_summary,
+        x='amount',
+        y='category_name',
+        orientation='h',
+        text=category_summary.apply(lambda row: f"${row['amount']:,.2f} ({row['percent']:.1f}%)", axis=1),
+        labels={'amount': 'Amount ($)', 'category_name': 'Category'},
+        title="Spending Breakdown by Category - Selected Months",
+    )
 
-# Create pie chart
-fig2 = px.pie(
-    selected_month_df,
-    names='label',
-    values='amount',
-    title=f"Spending Breakdown by Category - Selected Months",
-    hole=0.3
-)
+    bar_fig.update_layout(yaxis={'categoryorder': 'total ascending'})
+    bar_fig.update_traces(textposition='outside')
 
-fig2.update_traces(
-    hovertemplate="<b>%{label}</b><br>Amount: $%{value:,.2f}<br>Percent: %{percent}",
-    textinfo='label'
-)
-
-# Plot pie chart
-pie_chart = st.plotly_chart(fig2, use_container_width=True)
-
+    # Plot bar chart
+    st.plotly_chart(bar_fig, use_container_width=True)
 
 # -------------------------------------------
 # Transactions Table (Debit and Credit)
